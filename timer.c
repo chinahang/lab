@@ -51,23 +51,46 @@ void timer_init(struct TIMER* timer, struct FIFO32* fifo, int data)
 
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
-	int e, i, j;
+	int e;
+	struct TIMER* t, * s;
 	timer->timeout = timeout + timerctl.count;
 	timer->flags = TIMER_FLAGS_USING;
 	e = io_load_eflags();
 	io_cli();
-	/*搜索注册位置*/
-	for (i = 0; i < timerctl.using; i++) {
-		if (timerctl.timers[i]->timeout >= timer->timeout) {
+	timerctl.using++;
+	if (timerctl.using == 1) {
+		/*处于运行状态的定时器只有一个时*/
+		timerctl.timers[0] = timer;
+		timer->next = 0;
+		timerctl.next = timer->timeout;
+		io_store_eflags(e);
+	}
+	t = timerctl.timers[0];
+	if (timer->timeout <= t->timeout) {
+		/*插入最前面的位置*/
+		timerctl.timers[0] = timer;
+		timer->next = t;/*下面是t*/
+		timerctl.next = timer->timeout;
+		io_store_eflags(e);
+		return;
+	}
+	/*搜寻插入位置*/
+	for (;;) {
+		s = t;
+		t = t->next;
+		if (t == 0) {
 			break;
 		}
+		if (timer->timeout <= t->timeout) {
+			/*插入到s和t之间*/
+			s->next = timer;
+			timer->next = t;
+			io_store_eflags(e);
+			return;
+		}
 	}
-	for (j = timerctl.using; j > i; j--) {
-		timerctl.timers[j] = timerctl.timers[j - 1];
-	}
-	timerctl.using++;
-	timerctl.timers[i] = timer;
-	timerctl.next = timerctl.timers[0]->timeout;
+	s->next = timer;
+	timer->next = 0;
 	io_store_eflags(e);
 	return;
 }
@@ -75,6 +98,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 void inthandler20(int* esp)
 {
 	int i,j;
+	struct TIMER* timer;
 	io_out8(PIC0_OCW2, 0x60);	
 	timerctl.count++;
 	if (timerctl.next > timerctl.count) {
@@ -91,14 +115,24 @@ void inthandler20(int* esp)
 	}
 	/*正好有个定时器超时了，其余的进行移位*/
 	timerctl.using -= i;
-	for (j = 0; j < timerctl.using; j++) {
-		timerctl.timers[j] = timerctl.timers[i + j];
-	}
+	/*新移位*/
+	timerctl.timers[0] = timer;
 	if (timerctl.using > 0) {
 		timerctl.next = timerctl.timers[0]->timeout;
 	}
 	else {
 		timerctl.next = 0xffffffff;
 	}
+	/*
+	*for (j = 0; j < timerctl.using; j++) {
+	*	timerctl.timers[j] = timerctl.timers[i + j];
+	*}
+	*if (timerctl.using > 0) {
+	*	timerctl.next = timerctl.timers[0]->timeout;
+	*}
+	*else {
+	*	timerctl.next = 0xffffffff;
+	*}
+	* /
 	return;
 }
