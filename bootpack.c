@@ -8,8 +8,8 @@ void putfonts8_asc_sht(struct SHEET *sht,int x, int y, int c, int b, char *s, in
 
 void HariMain(void)
 {
+	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
 	struct FIFO32 fifo;
-	struct BOOTINFO* binfo = (struct BOOTINFO*)ADR_BOOTINFO;
 	char s[40];
 	int fifobuf[128];
 	struct TIMER *timer, *timer2, *timer3;
@@ -144,12 +144,8 @@ void HariMain(void)
 				timer_settime(timer3,50);
 				sheet_refresh(sht_back,8,96,16,112);
 			}
-			
-			
-			
 		}
 	}
-	
 }
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
