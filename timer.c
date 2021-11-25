@@ -58,7 +58,7 @@ void timer_init(struct TIMER* timer, struct FIFO32* fifo, int data)
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
 	int e;
-	struct TIMER* t, * s;
+	struct TIMER *t, *s;
 	timer->timeout = timeout + timerctl.count;
 	timer->flags = TIMER_FLAGS_USING;
 	e = io_load_eflags();

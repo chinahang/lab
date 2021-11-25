@@ -8,8 +8,9 @@ int keydata0;
 void inthandler21(int *esp)
 {
 	int data;
+	io_out8(PIC0_OCW2, 0x61);	
 	data = io_in8(PORT_KEYDAT);
-	fifo32_put(keyfifo, data);
+	fifo32_put(keyfifo, data + keydata0);
 	return;
 }
 
@@ -38,4 +39,3 @@ void init_keyboard(struct FIFO32 *fifo,int data0) {
 	io_out8(PORT_KEYDAT, KBC_MODE);
 	return;
 }
-

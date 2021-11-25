@@ -78,8 +78,8 @@ struct GATE_DESCRIPTOR {
 	short offset_high;
 };
 void init_gdtidt(void);
-void set_segmdesc(struct SEGMENT_DESCRIPTOR* sd, unsigned int limit, int base, int ar);
-void set_gatedesc(struct GATE_DESCRIPTOR* gd, int offset, int selector, int ar);
+void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
+void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 #define ADR_IDT			0x0026f800
 #define LIMIT_IDT		0x000007ff
 #define ADR_GDT			0x00270000
@@ -92,7 +92,7 @@ void set_gatedesc(struct GATE_DESCRIPTOR* gd, int offset, int selector, int ar);
 
 /* int.c */
 void init_pic(void);
-void inthandler27(int* esp);
+void inthandler27(int *esp);
 #define PIC0_ICW1		0x0020
 #define PIC0_OCW2		0x0020
 #define PIC0_IMR		0x0021
@@ -171,7 +171,7 @@ struct TIMER {
 	int data;
 };
 struct TIMERCTL {
-	unsigned int count,next,using;
+	unsigned int count, next;
 	struct TIMER *t0;
 	struct TIMER timers0[MAX_TIMER];
 };
