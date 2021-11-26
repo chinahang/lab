@@ -17,15 +17,15 @@ VRAM	EQU		0x0ff8			; ﾏﾔｿｨｻｺｴ豬ﾘﾖｷ
 
 ; 画面モードを設定
 
-		MOV		AL,0x13			; VGA 320*200*8bit
-		MOV		AH,0x00
-		;MOV 	BX,0x4101 		; VGA 640*480*8bit
-		;MOV 	AX,0x4F02
+		;MOV		AL,0x13			; VGA 320*200*8bit
+		;MOV		AH,0x00
+		MOV 	BX,0x4105 		; VGA 640*480*8bit 105-1024*768
+		MOV 	AX,0x4F02
 		INT		0x10
 		MOV		BYTE [VMODE],8	; ｼﾇﾏﾂﾏﾂｻｭﾃ貽｣ﾊｽ
-		MOV		WORD [SCRNX],320
-		MOV		WORD [SCRNY],200
-		MOV		DWORD [VRAM],0x000a0000
+		MOV		WORD [SCRNX],1024
+		MOV		WORD [SCRNY],768
+		MOV		DWORD [VRAM],0xe0000000
 
 ; キーボードのLED状態をBIOSに教えてもらう
 
