@@ -1,6 +1,14 @@
 ; haribote-os boot asm
 ; TAB=4
 
+[INSTRSET "i486p"]
+VBEMODE	EQU		0x105
+;	0x100:640*400*8bit
+;	0x101:640*480*8
+;	0x103:800*600*8
+;	0x105:1024*768*8
+;	0x107:1280*1024*8
+
 BOTPAK	EQU		0x00280000		; bootpack 加载地址
 DSKCAC	EQU		0x00100000		; 磁盘缓存地址
 DSKCAC0	EQU		0x00008000		; 磁盘缓存地址实模式
@@ -15,20 +23,64 @@ VRAM	EQU		0x0ff8			; 显卡缓存地址
 
 		ORG		0xc200			; 
 
-; 夋柺儌乕僪傪愝掕
-
-		;MOV		AL,0x13			; VGA 320*200*8bit
-		;MOV		AH,0x00
-		MOV 	BX,0x4105 		; VGA 640*480*8bit 105-1024*768
-		MOV 	AX,0x4F02
+;VBE是否存在
+		MOV		AX,0x9000
+		MOV		ES,AX
+		MOV		DI,0
+		MOV		AX,0x4F00
 		INT		0x10
-		MOV		BYTE [VMODE],8	; 记下下画面模式
-		MOV		WORD [SCRNX],1024
-		MOV		WORD [SCRNY],768
-		MOV		DWORD [VRAM],0xe0000000
+		CMP		AX,0x004F
+		JNE		scrn320
+
+;检查VBE的版本
+		MOV		AX,[ES:DI+4]
+		CMP		AX,0x0200
+		JB		scrn320
+
+;取得画面模式信息
+		MOV		CX,VBEMODE
+		MOV		AX,0x4f01
+		INT		0x10
+		CMP		AX,0x004f
+		JNE		scrn320
+
+;设定画面模式的参数
+		CMP		BYTE [ES:DI+0x19],8		;8为颜色数
+		JNE		scrn320
+		CMP		BYTE [ES:DI+0x1b],4		;4为调色板
+		JNE		scrn320
+		MOV		AX,[ES:DI+0x00]
+		AND		AX,0x0080
+		JZ		scrn320
+		
+;画面模式的切换
+		MOV		BX,VBEMODE+0x4000
+		MOV		AX,0x4F02
+		INT		0x10
+		MOV		BYTE [VMODE],8
+		MOV		AX,[ES:DI+0x12]
+		MOV		[SCRNX],AX
+		MOV		AX,[ES:DI+0x14]
+		MOV		[SCRNY],AX
+		MOV		EAX,[ES:DI+0x28]
+		MOV		[VRAM],EAX
+		JNP		keystatus
+
+
+;设置显示参数
+;scrn320:
+		MOV		AL,0x13
+		MOV		AH,0x00
+		INT		0x10
+		MOV		BYTE[VMODE],8
+		MOV		WORD[SCRNX],320
+		MOV		WORD[SCRNY],200
+		MOV		DWORD[VRAM],0x000a0000
+
+
 
 ; 僉乕儃乕僪偺LED忬懺傪BIOS偵嫵偊偰傕傜偆
-
+keystatus:
 		MOV		AH,0x02
 		INT		0x16 			; keyboard BIOS
 		MOV		[LEDS],AL
@@ -41,10 +93,10 @@ VRAM	EQU		0x0ff8			; 显卡缓存地址
 
 		MOV		AL,0xff
 		OUT		0x21,AL
-		NOP						; 弞??峴out
+		NOP						; 循环执行out
 		OUT		0xa1,AL
 
-		CLI						; CPU??揑拞抐
+		CLI						; CPU再次中断
 
 ; ?槩晹暘撪梕丆嵼杻徣棟岺686?掱桳??戙?
 ; ?棦揑戙?巊CPU??PS / 2??峊惂婍埲?娕泙惀斲惓朲 
