@@ -4,8 +4,7 @@
 #include <stdio.h>
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
-void putfonts8_asc_sht(struct SHEET *sht,int x, int y, int c, int b, char *s, int l);
-
+void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l);
 
 void HariMain(void)
 {
@@ -17,10 +16,10 @@ void HariMain(void)
 	int mx, my, i;
 	unsigned int memtotal;
 	struct MOUSE_DEC mdec;
-	struct MEMMAN* memman = (struct MEMMAN*)MEMMAN_ADDR;
-	struct SHTCTL* shtctl;
-	struct SHEET* sht_back, * sht_mouse, * sht_win;
-	unsigned char* buf_back, buf_mouse[256], * buf_win;
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	struct SHTCTL *shtctl;
+	struct SHEET *sht_back, *sht_mouse, *sht_win;
+	unsigned char *buf_back, buf_mouse[256], *buf_win;
 	static char keytable[0x54] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0,   0,
 		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0,   0,   'A', 'S',
@@ -69,20 +68,20 @@ void HariMain(void)
 	sheet_setbuf(sht_win, buf_win, 160, 52, -1);
 	init_screen8(buf_back, binfo->scrnx, binfo->scrny);
 	init_mouse_cursor8(buf_mouse, 99);
-	make_window8(buf_win, 160, 52, "counter");
+	make_window8(buf_win, 160, 52, "window");
 	sheet_slide(sht_back, 0, 0);
 	mx = (binfo->scrnx - 16) / 2; /* 计算画面的中心坐标*/
 	my = (binfo->scrny - 28 - 16) / 2;
 	sheet_slide(sht_mouse, mx, my);
 	sheet_slide(sht_win, 80, 72);
-	sheet_updown(sht_back, 0);
-	sheet_updown(sht_win, 1);
+	sheet_updown(sht_back,  0);
+	sheet_updown(sht_win,   1);
 	sheet_updown(sht_mouse, 2);
 	sprintf(s, "(%3d, %3d)", mx, my);
-	putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF,COL8_008484 ,s,10);
+	putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s, 10);
 	sprintf(s, "memory %dMB   free : %dKB",
-		memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfonts8_asc_sht(sht_back,0,32,COL8_FFFFFF,COL8_008484,s,40);
+			memtotal / (1024 * 1024), memman_total(memman) / 1024);
+	putfonts8_asc_sht(sht_back, 0, 32, COL8_FFFFFF, COL8_008484, s, 40);
 
 	for (;;) {
 		io_cli();
@@ -132,8 +131,7 @@ void HariMain(void)
 						my = binfo->scrny - 1;
 					}
 					sprintf(s, "(%3d, %3d)", mx, my);
-
-					putfonts8_asc_sht(sht_back,0,0,COL8_FFFFFF,COL8_008484,s,10);
+					putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s, 10);
 					sheet_slide(sht_mouse, mx, my);
 				}
 			}else if( i == 10){

@@ -27,15 +27,15 @@ VRAM	EQU		0x0ff8			; 显卡缓存地址
 		MOV		AX,0x9000
 		MOV		ES,AX
 		MOV		DI,0
-		MOV		AX,0x4F00
+		MOV		AX,0x4f00
 		INT		0x10
-		CMP		AX,0x004F
+		CMP		AX,0x004f
 		JNE		scrn320
 
 ;检查VBE的版本
 		MOV		AX,[ES:DI+4]
 		CMP		AX,0x0200
-		JB		scrn320
+		JB		scrn320			; if (AX < 0x0200) goto scrn320
 
 ;取得画面模式信息
 		MOV		CX,VBEMODE
@@ -55,7 +55,7 @@ VRAM	EQU		0x0ff8			; 显卡缓存地址
 		
 ;画面模式的切换
 		MOV		BX,VBEMODE+0x4000
-		MOV		AX,0x4F02
+		MOV		AX,0x4f02
 		INT		0x10
 		MOV		BYTE [VMODE],8
 		MOV		AX,[ES:DI+0x12]
@@ -64,22 +64,20 @@ VRAM	EQU		0x0ff8			; 显卡缓存地址
 		MOV		[SCRNY],AX
 		MOV		EAX,[ES:DI+0x28]
 		MOV		[VRAM],EAX
-		JNP		keystatus
-
+		JMP		keystatus
 
 ;设置显示参数
 ;scrn320:
 		MOV		AL,0x13
 		MOV		AH,0x00
 		INT		0x10
-		MOV		BYTE[VMODE],8
-		MOV		WORD[SCRNX],320
-		MOV		WORD[SCRNY],200
-		MOV		DWORD[VRAM],0x000a0000
-
-
+		MOV		BYTE [VMODE],8
+		MOV		WORD [SCRNX],320
+		MOV		WORD [SCRNY],200
+		MOV		DWORD [VRAM],0x000a0000
 
 ; 僉乕儃乕僪偺LED忬懺傪BIOS偵嫵偊偰傕傜偆
+
 keystatus:
 		MOV		AH,0x02
 		INT		0x16 			; keyboard BIOS
@@ -110,8 +108,6 @@ keystatus:
 		CALL	waitkbdout
 
 ; 僾儘僥僋僩儌乕僪堏峴
-
-[INSTRSET "i486p"]				; 486偺柦椷傑偱巊偄偨偄偲偄偆婰弎
 
 		LGDT	[GDTR0]			; 巄掕GDT傪愝掕
 		MOV		EAX,CR0
