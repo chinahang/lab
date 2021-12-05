@@ -7,12 +7,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title);
 void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 
-struct TSS32 {
-	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;//任务设定的属性
-	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
-	int es, cs, ss, ds, fs, gs;
-	int ldtr, iomap;
-};
+
 
 void task_b_main(struct SHEET *sht_back);
 

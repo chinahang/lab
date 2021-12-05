@@ -9,7 +9,7 @@ void mt_init(void) {
 	return;
 }
 
-void mt_taskswitch(void) {
+void task_switch(void) {
 	if (mt_tr == 3 * 8) {
 		mt_tr = 4 * 8;
 	}
