@@ -92,9 +92,8 @@ void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 #define LIMIT_BOTPAK	0x0007ffff
 #define AR_DATA32_RW	0x4092
 #define AR_CODE32_ER	0x409a
-#define AR_INTGATE32	0x008e
 #define AR_TSS32		0x0089
-
+#define AR_INTGATE32	0x008e
 
 /* int.c */
 void init_pic(void);
@@ -113,9 +112,9 @@ void inthandler27(int *esp);
 #define PIC1_ICW4		0x00a1
 
 /* keyboard.c */
-void inthandler21(int* esp);
+void inthandler21(int *esp);
 void wait_KBC_sendready(void);
-void init_keyboard(struct FIFO32 *fifo,int data0);
+void init_keyboard(struct FIFO32 *fifo, int data0);
 #define PORT_KEYDAT		0x0060
 #define PORT_KEYCMD		0x0064
 
@@ -124,10 +123,9 @@ struct MOUSE_DEC {
 	unsigned char buf[3], phase;
 	int x, y, btn;
 };
-void inthandler2c(int* esp);
-void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC* mdec);
-int mouse_decode(struct MOUSE_DEC* mdec, unsigned char dat);
-
+void inthandler2c(int *esp);
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec);
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
 
 /* memory.c */
 #define MEMMAN_FREES		4090	/* ¤³¤ì¤Ç¼s32KB */
@@ -150,30 +148,30 @@ int memman_free_4k(struct MEMMAN* man, unsigned int addr, unsigned int size);
 /* sheet.c */
 #define MAX_SHEETS		256
 struct SHEET {
-	unsigned char* buf;
+	unsigned char *buf;
 	int bxsize, bysize, vx0, vy0, col_inv, height, flags;
-	struct SHTCTL* ctl;
+	struct SHTCTL *ctl;
 };
 struct SHTCTL {
-	unsigned char* vram, * map;
+	unsigned char *vram, *map;
 	int xsize, ysize, top;
-	struct SHEET* sheets[MAX_SHEETS];
+	struct SHEET *sheets[MAX_SHEETS];
 	struct SHEET sheets0[MAX_SHEETS];
 };
-struct SHTCTL* shtctl_init(struct MEMMAN* memman, unsigned char* vram, int xsize, int ysize);
-struct SHEET* sheet_alloc(struct SHTCTL* ctl);
-void sheet_setbuf(struct SHEET* sht, unsigned char* buf, int xsize, int ysize, int col_inv);
-void sheet_updown(struct SHEET* sht, int height);
-void sheet_refresh(struct SHEET* sht, int bx0, int by0, int bx1, int by1);
-void sheet_slide(struct SHEET* sht, int vx0, int vy0);
-void sheet_free(struct SHEET* sht);
+struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize, int ysize);
+struct SHEET *sheet_alloc(struct SHTCTL *ctl);
+void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize, int col_inv);
+void sheet_updown(struct SHEET *sht, int height);
+void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
+void sheet_slide(struct SHEET *sht, int vx0, int vy0);
+void sheet_free(struct SHEET *sht);
 
 /* timer.c */
 #define MAX_TIMER		500
 struct TIMER {
 	struct TIMER *next;
 	unsigned int timeout, flags;
-	struct FIFO32* fifo;
+	struct FIFO32 *fifo;
 	int data;
 };
 struct TIMERCTL {
@@ -183,12 +181,11 @@ struct TIMERCTL {
 };
 extern struct TIMERCTL timerctl;
 void init_pit(void);
-struct TIMER* timer_alloc(void);
-void timer_free(struct TIMER* timer);
-void timer_init(struct TIMER* timer, struct FIFO32* fifo,int data);
-void timer_settime(struct TIMER* timer, unsigned int timeout);
-void inthandler20(int* esp);
-
+struct TIMER *timer_alloc(void);
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data);
+void timer_settime(struct TIMER *timer, unsigned int timeout);
+void inthandler20(int *esp);
 
 /*mtask.c*/
 
@@ -208,12 +205,10 @@ struct TASKCTL {
 	int running;
 	int now;
 	struct TASK* tasks[MAX_TASKS];
-	struct TASK* tasks0[MAX_TASKS];
+	struct TASK tasks0[MAX_TASKS];
 };
-
-extern struct TIMER* mt_timer;
-struct TASK* task_init(struct MEMMAN* memman);
-struct TASK* task_alloc(void);
-void task_run(struct TASK* task);
-void mt_init(void);
+extern struct TIMER *task_timer;
+struct TASK *task_init(struct MEMMAN *memman);
+struct TASK *task_alloc(void);
+void task_run(struct TASK *task);
 void task_switch(void);
