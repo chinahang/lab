@@ -4,15 +4,16 @@
 
 #define FLAGS_OVERRUN		0x0001
 
-void fifo32_init(struct FIFO32 *fifo,int  size,int *buf)
+void fifo32_init(struct FIFO32 *fifo,int  size,int *buf,struct TASK *task)
 /*初始化FIFO缓冲区*/
 {
 	fifo->size = size;
 	fifo->buf = buf;
-	fifo->free = size;
+	fifo->free = size;/*剩余空间*/
 	fifo->flags = 0;
-	fifo->p = 0;
-	fifo->q = 0;
+	fifo->p = 0;/*写入位置*/
+	fifo->q = 0;/*读取位置*/
+	fifo->task = task;
 	return;
 }
 
@@ -31,6 +32,11 @@ int fifo32_put(struct FIFO32 *fifo, int data)
 		 fifo->p = 0;
 	 }
 	 fifo->free--;
+	 if (fifo->task != 0) {/*如果存在的情况下*/
+		 if (fifo->task->flags != 2) {
+			 task_run(fifo->task);/*将任务开始*/
+		 }
+	 }
 	 return 0;
 }
 
