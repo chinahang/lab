@@ -1,4 +1,4 @@
-/* asmhead.nas */
+ /* asmhead.nas */
 struct BOOTINFO { /* 0x0ff0-0x0fff */
 	char cyls; /* ブートセクタはどこまでディスクを読んだのか */
 	char leds; /* ブート時のキーボードのLEDの状態 */
@@ -28,8 +28,6 @@ void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
-void taskswitch3(void);
-void taskswitch4(void);
 void farjmp(int eip, int cs);
 
 /* fifo.c */
@@ -192,6 +190,8 @@ void inthandler20(int *esp);
 
 #define MAX_TASKS	1000
 #define TASK_GDT0	3
+#define MAX_TASKS_LV	100
+#define MAX_TASKLEVELS	10
 struct TSS32 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;//任务设定的属性
 	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
@@ -199,18 +199,24 @@ struct TSS32 {
 	int ldtr, iomap;
 };
 struct TASK{
-	int sel, flags;
+	int sel, flags;//sel 代表GDT编号
+	int priority, level; 
 	struct TSS32 tss;
 };
-struct TASKCTL {
+struct TASKLEVEL {
 	int running;
-	int now;
-	struct TASK* tasks[MAX_TASKS];
+	int now;/*这个变量用来记录当前正在进行的是那个任务*/
+	struct TASK* tasks[MAX_TASKS_LV];
+};
+struct TASKCTL {
+	int now_lv;
+	char lv_change;/*在下次任务切换时是否需要改变LEVEL*/
+	struct TASKLEVEL level[MAX_TASKLEVELS];
 	struct TASK tasks0[MAX_TASKS];
 };
 extern struct TIMER *task_timer;
 struct TASK *task_init(struct MEMMAN *memman);
 struct TASK *task_alloc(void);
-void task_run(struct TASK *task);
+void task_run(struct TASK *task,int level,int priority);
 void task_switch(void);
-void task_sleep(struct TASK* task);
+void task_sleep(struct TASK *task);
