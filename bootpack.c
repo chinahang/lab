@@ -6,6 +6,7 @@
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
+void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
 void console_task(struct SHEET *sheet);
 
 void HariMain(void)
@@ -31,14 +32,15 @@ void HariMain(void)
 	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_cons;
 	struct TASK *task_a, *task_cons;
 	struct TIMER *timer;
+	int key_to = 0;
 
 	init_gdtidt();
 	init_pic();
 	io_sti(); /* IDT/PIC的初始化已经完成，于是开放CPU的中断 */
 	fifo32_init(&fifo, 128, fifobuf,0);
 	init_pit();/*定时器的中断初始化*/
-    init_keyboard(&fifo, 256);
-  	enable_mouse(&fifo, 512, &mdec);
+	init_keyboard(&fifo, 256);
+	enable_mouse(&fifo, 512, &mdec);
 
 	io_out8(PIC0_IMR, 0xf8); /* 开放PIC1和键盘中断(11111001) */
 	io_out8(PIC1_IMR, 0xef); /* 开放鼠标中断(11101111) */
@@ -56,7 +58,7 @@ void HariMain(void)
 	task_run(task_a, 1, 2);
 
 	/*sht_back*/
-	sht_back  = sheet_alloc(shtctl);
+	sht_back = sheet_alloc(shtctl);
 	buf_back = (unsigned char*)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny, -1);
 	init_screen8(buf_back, binfo->scrnx, binfo->scrny);
@@ -65,23 +67,23 @@ void HariMain(void)
 	sht_cons = sheet_alloc(shtctl);
 	buf_cons = (unsigned char*)memman_alloc_4k(memman, 256 * 165);
 	sheet_setbuf(sht_cons, buf_cons, 256, 165, -1);
-	make_window8(buf_cons, 256,165,"console",0);
+	make_window8(buf_cons, 256, 165, "console", 0);
 	make_textbox8(sht_cons, 8, 28, 240, 128, COL8_000000);
 	task_cons = task_alloc();
 	task_cons->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
-	task_cons->tss.eip = (int) &console_task;
+	task_cons->tss.eip = (int)&console_task;
 	task_cons->tss.es = 1 * 8;
 	task_cons->tss.cs = 2 * 8;
 	task_cons->tss.ss = 1 * 8;
 	task_cons->tss.ds = 1 * 8;
 	task_cons->tss.fs = 1 * 8;
 	task_cons->tss.gs = 1 * 8;
-	*((int *) (task_cons->tss.esp + 4)) = (int) sht_cons;
+	*((int*)(task_cons->tss.esp + 4)) = (int)sht_cons;
 	task_run(task_cons, 2, 2); /* level=2, priority=2 */
 
 	/* sht_win */
-	sht_win   = sheet_alloc(shtctl);
-	buf_win   = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
+	sht_win = sheet_alloc(shtctl);
+	buf_win = (unsigned char*)memman_alloc_4k(memman, 160 * 52);
 	sheet_setbuf(sht_win, buf_win, 144, 52, -1); /* 摟柧怓側偟 */
 	make_window8(buf_win, 144, 52, "task_a", 1);
 	make_textbox8(sht_win, 8, 28, 128, 16, COL8_FFFFFF);
@@ -98,18 +100,18 @@ void HariMain(void)
 	mx = (binfo->scrnx - 16) / 2; /* 计算画面的中心坐标*/
 	my = (binfo->scrny - 28 - 16) / 2;
 
-	sheet_slide(sht_back,  0,  0);
-	sheet_slide(sht_cons, 32,  4);
-	sheet_slide(sht_win,  64, 56);
+	sheet_slide(sht_back, 0, 0);
+	sheet_slide(sht_cons, 32, 4);
+	sheet_slide(sht_win, 64, 56);
 	sheet_slide(sht_mouse, mx, my);
-	sheet_updown(sht_back,  0);
-	sheet_updown(sht_cons,  1);
-	sheet_updown(sht_win,   2);
+	sheet_updown(sht_back, 0);
+	sheet_updown(sht_cons, 1);
+	sheet_updown(sht_win, 2);
 	sheet_updown(sht_mouse, 3);
 	sprintf(s, "(%3d, %3d)", mx, my);
 	putfonts8_asc_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s, 10);
 	sprintf(s, "memory %dMB   free : %dKB",
-			memtotal / (1024 * 1024), memman_total(memman) / 1024);
+		memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_asc_sht(sht_back, 0, 32, COL8_FFFFFF, COL8_008484, s, 40);
 
 	for (;;) {
@@ -117,23 +119,50 @@ void HariMain(void)
 		if (fifo32_status(&fifo) == 0) {
 			task_sleep(task_a);
 			io_sti();
-		} else {
+		}
+		else {
 			i = fifo32_get(&fifo);
 			io_sti();
 			if (256 <= i && i <= 511) { /*键盘数据*/
 				sprintf(s, "%02X", i - 256);
 				putfonts8_asc_sht(sht_back, 0, 16, COL8_FFFFFF, COL8_008484, s, 2);
-				if (i < 0x54 + 256) {
-					if (keytable[i - 256] != 0 && cursor_x < 128) {/*一般字符*/
-						s[0] = keytable[i - 256];
-						s[1] = 0;
-						putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s, 1);
-						cursor_x += 8;
+				if (i < 0x54 + 256 && keytable[i - 256] != 0) {/*一般字符*/
+					if (key_to == 0) {
+						if (cursor_x < 128) {
+							s[0] = keytable[i - 256];
+							s[1] = 0;
+							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s, 1);
+							cursor_x += 8;
+						}
+					}
+					else {
+						fifo32_put(&task_cons->fifo, keytable[i - 256] + 256);
 					}
 				}
-				if(i == 256 + 0x0e && cursor_x > 8){
-				putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF," ",  1);
-				cursor_x -= 8;
+				if (i == 256 + 0x0e) {/*退格键*/
+					if(key_to == 0){
+						if (cursor_x > 8) {
+							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ", 1);
+							cursor_x -= 8;
+						}
+					}else {
+					fifo32_put(&task_cons->fifo, 8 + 256);
+					}
+				}
+			
+				if (i == 256 + 0x0f) {
+					if (key_to == 0) {
+						key_to = 1;
+						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
+						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
+					}
+					else {
+						key_to = 0;
+						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
+						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);
+					}
+					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
+					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
 				}
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
@@ -194,6 +223,21 @@ void HariMain(void)
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act)
 {
+	boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         xsize - 1, 0        );
+	boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         xsize - 2, 1        );
+	boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         0,         ysize - 1);
+	boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         1,         ysize - 2);
+	boxfill8(buf, xsize, COL8_848484, xsize - 2, 1,         xsize - 2, ysize - 2);
+	boxfill8(buf, xsize, COL8_000000, xsize - 1, 0,         xsize - 1, ysize - 1);
+	boxfill8(buf, xsize, COL8_C6C6C6, 2,         2,         xsize - 3, ysize - 3);
+	boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
+	boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
+	make_wtitle8(buf, xsize, title, act);
+	return;
+}
+
+void make_wtitle8(unsigned char* buf, int xsize, char* title, char act)
+{
 	static char closebtn[14][16] = {
 		"OOOOOOOOOOOOOOO@",
 		"OQQQQQQQQQQQQQ$@",
@@ -220,16 +264,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 		tc = COL8_C6C6C6;
 		tbc = COL8_848484;
 	}
-	boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         xsize - 1, 0        );
-	boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         xsize - 2, 1        );
-	boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         0,         ysize - 1);
-	boxfill8(buf, xsize, COL8_FFFFFF, 1,         1,         1,         ysize - 2);
-	boxfill8(buf, xsize, COL8_848484, xsize - 2, 1,         xsize - 2, ysize - 2);
-	boxfill8(buf, xsize, COL8_000000, xsize - 1, 0,         xsize - 1, ysize - 1);
-	boxfill8(buf, xsize, COL8_C6C6C6, 2,         2,         xsize - 3, ysize - 3);
-	boxfill8(buf, xsize, tbc,         3,         3,         xsize - 4, 20       );
-	boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
-	boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
+	boxfill8(buf, xsize, tbc, 3, 3, xsize - 4, 20);
 	putfonts8_asc(buf, xsize, 24, 4, tc, title);
 	for (y = 0; y < 14; y++) {
 		for (x = 0; x < 16; x++) {
@@ -248,6 +283,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 	}
 	return;
 }
+
 /*
 *x,y---location
 *c-----color of charactor
@@ -279,37 +315,55 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c)
 
 void console_task(struct SHEET *sheet)
 {
-	struct FIFO32 fifo;
 	struct TIMER *timer;
 	struct TASK *task = task_now();
+	int i, fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	char s[2];
 
-	int i, fifobuf[128], cursor_x = 8, cursor_c = COL8_000000;
-	fifo32_init(&fifo, 128, fifobuf, task);
-
+	fifo32_init(&task->fifo, 128, fifobuf, task);
 	timer = timer_alloc();
-	timer_init(timer, &fifo, 1);
+	timer_init(timer, &task->fifo, 1);
 	timer_settime(timer, 50);
-
+	
+	/*显示提示符*/
+	putfonts8_asc_sht(sheet, 8, 28, COL8_FFFFFF, COL8_000000, ">", 1);
 	for (;;) {
 		io_cli();
-		if (fifo32_status(&fifo) == 0) {
+		if (fifo32_status(&task->fifo) == 0) {
 			task_sleep(task);
 			io_sti();
 		} else {
-			i = fifo32_get(&fifo);
+			i = fifo32_get(&task->fifo);
 			io_sti();
 			if (i <= 1) {
 				if (i != 0) {
-					timer_init(timer, &fifo, 0);
+					timer_init(timer, &task->fifo, 0);
 					cursor_c = COL8_FFFFFF;
 				} else {
-					timer_init(timer, &fifo, 1); /* 師偼1傪 */
+					timer_init(timer, &task->fifo, 1); 
 					cursor_c = COL8_000000;
 				}
 				timer_settime(timer, 50);
-				boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 			}
+			if (256 <= i && i <= 511) {
+				if (i==8+256) {
+					if (cursor_x > 16) {
+						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ", 1);
+						cursor_x -= 8;
+					}
+				}
+				else {
+					/*一般字符*/
+					if (cursor_x < 240) {
+						s[0] = i - 256;
+						s[1] = 0;
+						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s, 1);
+						cursor_x += 8;
+					}
+				}
+			}
+			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 		}
 	}
 }
