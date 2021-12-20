@@ -59,11 +59,19 @@ void task_switchsub(void)
 	return;
 }
 
+void task_idle(void)
+{
+	for (;;) {
+		io_hlt();
+	}
+}
+
 struct TASK *task_init(struct MEMMAN *memman)
 {
 	int i;
-	struct TASK *task;
+	struct TASK *task, *idle;
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
+
 	taskctl = (struct TASKCTL *) memman_alloc_4k(memman, sizeof (struct TASKCTL));
 	for (i = 0; i < MAX_TASKS; i++) {
 		taskctl->tasks0[i].flags = 0;
@@ -74,6 +82,7 @@ struct TASK *task_init(struct MEMMAN *memman)
 		taskctl->level[i].running = 0;
 		taskctl->level[i].now = 0;
 	}
+
 	task = task_alloc();
 	task->flags = 2;
 	task->priority = 2;
@@ -83,6 +92,18 @@ struct TASK *task_init(struct MEMMAN *memman)
 	load_tr(task->sel);
 	task_timer = timer_alloc();
 	timer_settime(task_timer, task->priority);
+
+	idle = task_alloc();
+	idle->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024;
+	idle->tss.eip = (int) &task_idle;
+	idle->tss.es = 1 * 8;
+	idle->tss.cs = 2 * 8;
+	idle->tss.ss = 1 * 8;
+	idle->tss.ds = 1 * 8;
+	idle->tss.fs = 1 * 8;
+	idle->tss.gs = 1 * 8;
+	task_run(idle, MAX_TASKLEVELS - 1, 1);
+
 	return task;
 }
 
@@ -168,4 +189,3 @@ void task_switch(void)
 	}
 	return;
 }
-
