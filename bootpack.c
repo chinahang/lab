@@ -191,20 +191,24 @@ void HariMain(void)
 					}
 				}
 			
-				if (i == 256 + 0x0f) {
+				if (i == 256 + 0x0f) {/*"TAB键"*/
 					if (key_to == 0) {
 						key_to = 1;
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
+						cursor_x = -1; /*不显示*/
+						boxfill8(sht_win->buf, sht_win->bysize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
 					}
 					else {
 						key_to = 0;
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);
+						cursor_c = COL8_000000;/*显示*/
 					}
 					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
 				}
+				
 				if (i == 256 + 0x2a) {
 					key_shift |= 1;
 				}
@@ -240,6 +244,9 @@ void HariMain(void)
 					io_out8(PORT_KEYDAT, keycmd_wait);
 				}
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+				if (cursor_c >= 0) {
+					boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+				}
 				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 			}
 			else if (512 <=i && i<=767) { /*鼠标数据*/
@@ -279,18 +286,33 @@ void HariMain(void)
 						sheet_slide(sht_win, mx - 80, my - 8);
 					}
 				}
-			}else if (i<=1){
+			}else if (i<=1){/*光标定时器*/
 				if (i != 0) {
 					timer_init(timer, &fifo, 0);
-					cursor_c = COL8_000000;
+					if (cursor_c >= 0) {
+						cursor_c = COL8_000000;
+					}
 				}
 				else {
 					timer_init(timer, &fifo, 1);
-					cursor_c = COL8_FFFFFF;
+					if (cursor_c >= 0) {
+						cursor_c = COL8_FFFFFF;
+					}
 				}
 				timer_settime(timer, 50);
-				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+				if (cursor_c >= 0) {
+
+
+
+
+
+
+
+
+					boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+					sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+
+				}
 			}
 		}
 	}
