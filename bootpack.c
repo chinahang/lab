@@ -51,15 +51,13 @@ void HariMain(void)
 	init_gdtidt();
 	init_pic();
 	io_sti(); /* IDT/PIC的初始化已经完成，于是开放CPU的中断 */
-	fifo32_init(&fifo, 128, fifobuf,0);
-	fifo32_init(&keycmd, 32, keycmd_buf, 0);
+	fifo32_init(&fifo, 128, fifobuf,0);	
 	init_pit();/*定时器的中断初始化*/
 	init_keyboard(&fifo, 256);
 	enable_mouse(&fifo, 512, &mdec);
-
 	io_out8(PIC0_IMR, 0xf8); /* 开放PIC1和键盘中断(11111001) */
 	io_out8(PIC1_IMR, 0xef); /* 开放鼠标中断(11101111) */
-
+    fifo32_init(&keycmd, 32, keycmd_buf, 0);
 
 
 	memtotal = memtest(0x00400000, 0xbfffffff);
@@ -131,6 +129,7 @@ void HariMain(void)
 	
 	fifo32_put(&keycmd, KEYCMD_LED);
 	fifo32_put(&keycmd, key_leds);
+
 	for (;;) {
 		if (fifo32_status(&keycmd) > 0 && keycmd_wait < 0) {
 			/*如果存在向键盘控制器发送的数据，则发送他*/
@@ -162,7 +161,7 @@ void HariMain(void)
 					s[0] = 0;
 				}
 				if ('A' <= s[0] && s[0] <= 'Z') {
-					if (((key_leds & 4) == key_shift == 0) ||
+					if (((key_leds & 4) == 0 && key_shift == 0) ||
 						((key_leds & 4) != 0 && key_shift != 0)) {
 						s[0] += 0x20;
 					}
@@ -190,25 +189,31 @@ void HariMain(void)
 					fifo32_put(&task_cons->fifo, 8 + 256);
 					}
 				}
-			
+			    if (i == 256 + 0x1c) {
+					if (key_to != 0) {
+						fifo32_put(&task_cons->fifo, 10 + 256);
+					}
+				}
 				if (i == 256 + 0x0f) {/*"TAB键"*/
 					if (key_to == 0) {
 						key_to = 1;
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
-						cursor_x = -1; /*不显示*/
+						cursor_c = -1; /*不显示*/
 						boxfill8(sht_win->buf, sht_win->bysize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+						fifo32_put(&task_cons->fifo, 2);/*命令行窗口光标ON*/
 					}
 					else {
 						key_to = 0;
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);
 						cursor_c = COL8_000000;/*显示*/
+						fifo32_put(&task_cons->fifo, 3);/*命令行窗口光标OFF*/
 					}
 					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
 				}
-				
+
 				if (i == 256 + 0x2a) {
 					key_shift |= 1;
 				}
@@ -216,10 +221,10 @@ void HariMain(void)
 					key_shift |= 2;
 				}
 				if (i == 256 + 0xaa) {
-					key_shift &= -1;
+					key_shift &= ~1;
 				}
 				if (i == 256 + 0xb6) {
-					key_shift &= -2;
+					key_shift &= ~2;
 				}
 				if (i == 256 + 0x3a) {
 					key_leds ^= 4;
@@ -243,7 +248,7 @@ void HariMain(void)
 					wait_KBC_sendready();
 					io_out8(PORT_KEYDAT, keycmd_wait);
 				}
-				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+				
 				if (cursor_c >= 0) {
 					boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 				}
@@ -301,17 +306,8 @@ void HariMain(void)
 				}
 				timer_settime(timer, 50);
 				if (cursor_c >= 0) {
-
-
-
-
-
-
-
-
 					boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
-
 				}
 			}
 		}
@@ -414,7 +410,8 @@ void console_task(struct SHEET *sheet)
 {
 	struct TIMER *timer;
 	struct TASK *task = task_now();
-	int i, fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28,cursor_c = -1;
+	int x, y;
 	char s[2];
 
 	fifo32_init(&task->fifo, 128, fifobuf, task);
@@ -435,32 +432,65 @@ void console_task(struct SHEET *sheet)
 			if (i <= 1) {
 				if (i != 0) {
 					timer_init(timer, &task->fifo, 0);
-					cursor_c = COL8_FFFFFF;
+					if (cursor_c >= 0) {
+						cursor_c = COL8_FFFFFF;
+					}
 				} else {
-					timer_init(timer, &task->fifo, 1); 
-					cursor_c = COL8_000000;
+					timer_init(timer, &task->fifo, 1);
+					if (cursor_c >= 0) {
+						cursor_c = COL8_000000;
+					}
 				}
 				timer_settime(timer, 50);
 			}
+			if (i == 2) {
+				cursor_c = COL8_FFFFFF;
+			}
+			if (i == 3) {
+				boxfill8(sheet->buf, sheet->bxsize, COL8_000000, cursor_x, 28, cursor_x + 7, 43);
+				cursor_c = -1;
+			}
 			if (256 <= i && i <= 511) {
-				if (i==8+256) {
+				if (i==8+256) {/*退格键*/
 					if (cursor_x > 16) {
 						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ", 1);
 						cursor_x -= 8;
 					}
+				}
+				else if (i == 10 + 256) {/*ENTER*/
+					if (cursor_y < 28 + 112) {
+						cursor_y += 16;
+					}
+					else {
+						for (y = 28; y < 28 + 112; y++) {
+							for (x = 8; x < 8 + 240; x++) {
+								sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
+							}
+						}
+						for (y = 28 + 112; y < 28 + 128; y++) {
+							for (x = 8; x < 8 + 240; x++) {
+								sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+							}
+						}
+						sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
+					}
+						putfonts8_asc_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">", 1);
+						cursor_x = 16;
 				}
 				else {
 					/*一般字符*/
 					if (cursor_x < 240) {
 						s[0] = i - 256;
 						s[1] = 0;
-						putfonts8_asc_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s, 1);
+						putfonts8_asc_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s, 1);
 						cursor_x += 8;
 					}
 				}
 			}
-			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
+			if (cursor_c >= 0) {
+				boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+			}
+			sheet_refresh(sheet, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
 		}
 	}
 }
