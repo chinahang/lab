@@ -1,6 +1,5 @@
 #include "bootpack.h"
 #include <stdio.h>
-#include <string.h>
 
 #define KEYCMD_LED		0xed
 
@@ -52,12 +51,12 @@ void HariMain(void)
 	io_out8(PIC1_IMR, 0xef); /* 开放鼠标中断(11101111) */
     fifo32_init(&keycmd, 32, keycmd_buf, 0);
 
-
 	memtotal = memtest(0x00400000, 0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000); /* 0x00001000 - 0x0009efff */
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
-	init_palette();  //初始化调色板
+
+	init_palette();
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	task_a = task_init(memman);
 	fifo.task = task_a;
@@ -135,7 +134,6 @@ void HariMain(void)
 			io_sti();
 			if (256 <= i && i <= 511) { /*键盘数据*/
 				if (i < 0x80 + 256) {
-
 					if (key_shift == 0) {
 						s[0] = keytable0[i - 256];
 					} else {
@@ -150,17 +148,15 @@ void HariMain(void)
 						s[0] += 0x20;
 					}
 				}
-				if (s[0] != 0)/*一般字符*/
-				{
+				if (s[0] != 0){/*一般字符*/
 					if (key_to == 0) {
 						if (cursor_x < 128) {
 							s[1] = 0;
 							putfonts8_asc_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s, 1);
 							cursor_x += 8;
 						}
-					}	else {
-							fifo32_put(&task_cons->fifo, s[0] + 256);
-						
+					}else {
+							fifo32_put(&task_cons->fifo, s[0] + 256);	
 					}
 				}
 				if (i == 256 + 0x0e) {/*退格键*/
@@ -184,10 +180,9 @@ void HariMain(void)
 						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 1);
 						cursor_c = -1; /*不显示*/
-						boxfill8(sht_win->buf, sht_win->bysize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+						boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
 						fifo32_put(&task_cons->fifo, 2);/*命令行窗口光标ON*/
-					}
-					else {
+					}else {
 						key_to = 0;
 						make_wtitle8(buf_win,  sht_win->bxsize,  "task_a",  1);
 						make_wtitle8(buf_cons, sht_cons->bxsize, "console", 0);

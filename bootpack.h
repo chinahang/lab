@@ -44,15 +44,14 @@ int fifo32_status(struct FIFO32* fifo);
 
 /* graphic.c */
 void init_palette(void);
-void set_palette(int start, int end, unsigned char* rgb);
-void boxfill8(unsigned char* vram, int xsize, unsigned char c, int x0, int y0, int x1, int y1);
-void init_screen8(char* vram, int x, int y);
-void putfont8(char* vram, int xsize, int x, int y, char c, char* font);
-void putfonts8_asc(char* vram, int xsize, int x, int y, char c, unsigned char* s);
-void init_mouse_cursor8(char* mouse, char bc);
-void putblock8_8(char* vram, int vxsize, int pxsize,
-	int pysize, int px0, int py0, char* buf, int bxsize);
-
+void set_palette(int start, int end, unsigned char *rgb);
+void boxfill8(unsigned char *vram, int xsize, unsigned char c, int x0, int y0, int x1, int y1);
+void init_screen8(char *vram, int x, int y);
+void putfont8(char *vram, int xsize, int x, int y, char c, char *font);
+void putfonts8_asc(char *vram, int xsize, int x, int y, char c, unsigned char *s);
+void init_mouse_cursor8(char *mouse, char bc);
+void putblock8_8(char *vram, int vxsize, int pxsize,
+	int pysize, int px0, int py0, char *buf, int bxsize);
 #define COL8_000000		0
 #define COL8_FF0000		1
 #define COL8_00FF00		2
@@ -231,8 +230,19 @@ void make_textbox8(struct SHEET* sht, int x0, int y0, int sx, int sy, int c);
 void make_wtitle8(unsigned char* buf, int xsize, char* title, char act);
 
 /*console.c*/
-void console_task(struct SHEET* sheet, unsigned int memtotal);
-int cons_newline(int cursor_y, struct SHEET* sheet);
+struct CONSOLE {
+	struct SHEET* sht;
+	int cur_x, cur_y, cur_c;
+};
+void console_task(struct SHEET *sheet, unsigned int memtotal);
+void cons_putchar(struct CONSOLE *cons, int chr, char move);
+void cons_newline(struct CONSOLE *cons);
+void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned int memtotal);
+void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
+void cmd_cls(struct CONSOLE *cons);
+void cmd_dir(struct CONSOLE *cons);
+void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
+void cmd_hlt(struct CONSOLE *cons, int *fat);
 
 /*file.c*/
 struct FILEINFO {
@@ -241,6 +251,7 @@ struct FILEINFO {
 	unsigned short time, date, clustno;
 	unsigned int size;
 };
+void file_readfat(int *fat, unsigned char *img);
+void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 
-void file_readfat(int* fat, unsigned char* img);
-void file_loadfile(int clustno, int size, char* buf, int* fat, char* img);
